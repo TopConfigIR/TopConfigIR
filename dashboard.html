@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TopConfigIR - مدیریت</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#080c18;color:#e8edf5;min-height:100vh;padding:20px}
+.app{max-width:1100px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid #1e3050;margin-bottom:25px;flex-wrap:wrap;gap:12px}
+.logo{font-size:22px;font-weight:700;background:linear-gradient(135deg,#00c8ff,#0066ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-actions{display:flex;gap:10px;align-items:center}
+.btn{background:#1a2640;border:1px solid #1e3050;color:#b0c4e0;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.3s}
+.btn:hover{background:#1e3050;border-color:#00c8ff;color:#fff}
+.btn-primary{background:linear-gradient(135deg,#00c8ff,#0066ff);border:none;color:#fff}
+.btn-primary:hover{background:linear-gradient(135deg,#33ddff,#3388ff)}
+.btn-danger{background:#4a1520;border-color:#6a2030;color:#f87171}
+.btn-danger:hover{background:#6a2030;border-color:#f87171}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:25px}
+.stat{background:#111b2e;border:1px solid #1e3050;border-radius:12px;padding:16px 18px}
+.stat-label{font-size:11px;color:#6a7fa0;text-transform:uppercase;letter-spacing:0.5px}
+.stat-value{font-size:24px;font-weight:700;margin-top:3px}
+.stat-value .a{color:#00c8ff}
+.stat-value .g{color:#4ade80}
+.stat-value .r{color:#f87171}
+.stat-value .y{color:#fbbf24}
+.section{background:#111b2e;border:1px solid #1e3050;border-radius:14px;padding:20px;margin-bottom:20px}
+.section-title{font-size:16px;font-weight:600;margin-bottom:14px;color:#b0c4e0}
+.table{width:100%;border-collapse:collapse}
+.table th{text-align:right;padding:10px 12px;font-size:12px;color:#6a7fa0;font-weight:500;border-bottom:1px solid #1e3050}
+.table td{padding:10px 12px;border-bottom:1px solid #0f1a2a;font-size:14px}
+.table tr:hover td{background:#0f1a2a}
+.badge{display:inline-block;padding:2px 12px;border-radius:12px;font-size:11px;font-weight:500}
+.badge-active{background:#0a2a1a;color:#4ade80}
+.badge-paused{background:#2a1a0a;color:#fbbf24}
+.badge-expired{background:#2a0a0a;color:#f87171}
+.empty{text-align:center;color:#6a7fa0;padding:30px 0}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center}
+.modal-content{background:#111b2e;border:1px solid #1e3050;border-radius:16px;padding:30px;width:90%;max-width:450px}
+.modal-content h3{margin-bottom:12px}
+.modal-content input{width:100%;padding:10px 14px;background:#0a1222;border:1px solid #1e3050;border-radius:8px;color:#fff;font-size:14px;margin-bottom:14px;outline:none}
+.modal-content input:focus{border-color:#00c8ff}
+.modal-actions{display:flex;gap:10px;margin-top:8px}
+.modal-actions button{padding:10px 24px;border-radius:8px;border:none;font-size:14px;font-weight:500;cursor:pointer}
+.modal-actions .save{background:linear-gradient(135deg,#00c8ff,#0066ff);color:#fff}
+.modal-actions .cancel{background:#1a2640;color:#b0c4e0;border:1px solid #1e3050}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header">
+<div class="logo">⚡ TopConfigIR</div>
+<div class="header-actions">
+<button class="btn" onclick="changePassword()">🔑 تغییر رمز</button>
+<button class="btn btn-danger" onclick="logout()">🚪 خروج</button>
+</div>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="stat-label">کاربران کل</div><div class="stat-value" id="totalUsers">0</div></div>
+<div class="stat"><div class="stat-label">فعال</div><div class="stat-value"><span class="g" id="activeUsers">0</span></div></div>
+<div class="stat"><div class="stat-label">متوقف</div><div class="stat-value"><span class="y" id="pausedUsers">0</span></div></div>
+<div class="stat"><div class="stat-label">منقضی</div><div class="stat-value"><span class="r" id="expiredUsers">0</span></div></div>
+</div>
+
+<div class="section">
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+<div class="section-title">📋 لیست کاربران</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<input id="searchInput" placeholder="جستجو..." style="background:#0a1222;border:1px solid #1e3050;border-radius:8px;padding:8px 14px;color:#fff;font-size:13px;outline:none;width:180px">
+<button class="btn btn-primary" onclick="addUser()">➕ افزودن</button>
+</div>
+</div>
+<div id="usersContainer"><div class="empty">در حال بارگذاری...</div></div>
+</div>
+</div>
+
+<div class="modal" id="modal">
+<div class="modal-content" id="modalContent"></div>
+</div>
+
+<script>
+let currentPassword = '123';
+let users = [];
+let editingId = null;
+
+async function loadUsers(){
+try{
+const res = await fetch('./api/users');
+const data = await res.json();
+if(data.success){ users = data.users; renderUsers(); updateStats(); }
+}catch(e){ document.getElementById('usersContainer').innerHTML='<div class="empty">خطا در بارگذاری</div>'; }
+}
+
+function renderUsers(){
+const container = document.getElementById('usersContainer');
+if(!users || users.length===0){
+container.innerHTML='<div class="empty">هیچ کاربری یافت نشد</div>';
+return;
+}
+const search = document.getElementById('searchInput').value.toLowerCase();
+const filtered = users.filter(u => u.name.toLowerCase().includes(search) || u.id.includes(search));
+let html='<table class="table"><thead><tr><th>نام</th><th>شناسه</th><th>وضعیت</th><th>مصرف</th><th>انقضا</th><th>عملیات</th></tr></thead><tbody>';
+filtered.forEach(u => {
+const status = u.isPaused ? 'badge-paused' : (u.expiryMs && Date.now()>u.expiryMs ? 'badge-expired' : 'badge-active');
+const statusText = u.isPaused ? 'متوقف' : (u.expiryMs && Date.now()>u.expiryMs ? 'منقضی' : 'فعال');
+const used = u.usage ? (u.usage.total/1073741824).toFixed(2) : '0';
+const limit = u.limitTotalReq ? (u.limitTotalReq*1073741824/6000/1073741824).toFixed(2) : '∞';
+const expiry = u.expiryMs ? new Date(u.expiryMs).toLocaleDateString('fa-IR') : '∞';
+html+=`<tr><td>${u.name}</td><td style="font-size:12px;color:#6a7fa0">${u.id.substring(0,8)}...</td><td><span class="badge ${status}">${statusText}</span></td><td>${used}/${limit} GB</td><td>${expiry}</td><td>
+<button class="btn" style="padding:4px 10px;font-size:11px" onclick="editUser('${u.id}')">✏️</button>
+<button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="deleteUser('${u.id}')">🗑️</button>
+</td></tr>`;
+});
+html+='</tbody></table>';
+container.innerHTML=html;
+}
+
+function updateStats(){
+const total = users.length;
+const active = users.filter(u => !u.isPaused && (!u.expiryMs || Date.now()<=u.expiryMs)).length;
+const paused = users.filter(u => u.isPaused).length;
+const expired = users.filter(u => u.expiryMs && Date.now()>u.expiryMs && !u.isPaused).length;
+document.getElementById('totalUsers').textContent=total;
+document.getElementById('activeUsers').textContent=active;
+document.getElementById('pausedUsers').textContent=paused;
+document.getElementById('expiredUsers').textContent=expired;
+}
+
+async function addUser(){
+const name = prompt('نام کاربر را وارد کنید:');
+if(!name) return;
+const res = await fetch('./api/users', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({name, key: currentPassword})
+});
+if(res.ok){ loadUsers(); } else { alert('خطا در افزودن کاربر'); }
+}
+
+async function editUser(id){
+const u = users.find(x => x.id===id);
+if(!u) return;
+const name = prompt('نام جدید:', u.name);
+if(!name) return;
+const res = await fetch(`./api/users?id=${id}`, {
+method:'PUT',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({name, key: currentPassword})
+});
+if(res.ok){ loadUsers(); } else { alert('خطا در ویرایش'); }
+}
+
+async function deleteUser(id){
+if(!confirm('آیا از حذف این کاربر اطمینان دارید؟')) return;
+const res = await fetch(`./api/users?id=${id}`, {
+method:'DELETE',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({key: currentPassword})
+});
+if(res.ok){ loadUsers(); } else { alert('خطا در حذف'); }
+}
+
+function changePassword(){
+document.getElementById('modalContent').innerHTML=`
+<h3>🔑 تغییر رمز عبور</h3>
+<input type="password" id="oldPass" placeholder="رمز فعلی">
+<input type="password" id="newPass" placeholder="رمز جدید">
+<input type="password" id="confirmPass" placeholder="تکرار رمز جدید">
+<div class="modal-actions">
+<button class="save" onclick="savePassword()">ذخیره</button>
+<button class="cancel" onclick="closeModal()">انصراف</button>
+</div>
+`;
+document.getElementById('modal').style.display='flex';
+}
+
+async function savePassword(){
+const old = document.getElementById('oldPass').value;
+const newp = document.getElementById('newPass').value;
+const confirm = document.getElementById('confirmPass').value;
+if(old !== currentPassword){ alert('رمز فعلی اشتباه است'); return; }
+if(newp.length<3){ alert('رمز جدید حداقل ۳ کاراکتر باشد'); return; }
+if(newp !== confirm){ alert('رمزها مطابقت ندارند'); return; }
+const res = await fetch('./api/auth', {
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({oldKey: old, newKey: newp})
+});
+if(res.ok){
+currentPassword = newp;
+alert('رمز با موفقیت تغییر کرد');
+closeModal();
+} else {
+alert('خطا در تغییر رمز');
+}
+}
+
+function logout(){
+if(confirm('خروج از پنل؟')){ window.location.href='./'; }
+}
+
+function closeModal(){ document.getElementById('modal').style.display='none'; }
+
+document.getElementById('searchInput').addEventListener('input', renderUsers);
+document.getElementById('modal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+
+loadUsers();
+</script>
+</body>
+</html>
